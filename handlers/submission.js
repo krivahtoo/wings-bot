@@ -25,6 +25,11 @@ module.exports = () => async (ctx) => {
       limit: 1
     }).then(s => s).catch(errorHandler)
 
+  session = Session
+    .findByPk(session.id)
+    .then(c => c)
+    .catch(errorHandler)
+
   if (!session) {
     return reply('Seems there is no active session.', ctx)
   }
@@ -109,11 +114,6 @@ module.exports = () => async (ctx) => {
             if (chn.banned) {
               return reply(`Sorry your channel ${chn.username} is banned.`, ctx)
             }
-
-            session = Session
-              .findByPk(session.id)
-              .then(c => c)
-              .catch(errorHandler)
 
             const subm = await session.getSubmissions({
               includes: [{
