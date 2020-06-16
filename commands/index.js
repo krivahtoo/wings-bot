@@ -7,7 +7,8 @@ const {
   confirmCommand,
   newCommand,
   shareCommand,
-  unbanCommand
+  unbanCommand,
+  endCommand
 } = require('./admin')
 
 module.exports = {
@@ -18,5 +19,6 @@ module.exports = {
   confirmCommand,
   newCommand,
   shareCommand,
-  unbanCommand
+  unbanCommand,
+  endCommand
 }

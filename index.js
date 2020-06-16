@@ -34,7 +34,8 @@ const {
 const {
   dbMiddleware,
   adminMiddleware,
-  commandMiddleware
+  commandMiddleware,
+  timeMiddleware
 } = require('./middlewares')
 
 const {
@@ -70,6 +71,7 @@ const init = async (bot) => {
   /**
    * Middlewares
    */
+  bot.use(timeMiddleware())
   bot.use(session.middleware())
   bot.use(adminMiddleware())
   bot.use(limit(ratelimit.text))

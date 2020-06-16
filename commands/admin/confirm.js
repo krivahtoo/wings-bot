@@ -51,7 +51,7 @@ module.exports = () => async ctx => {
     '#confirm @ModedGames\n\n' +
     '*NB:*\n' +
     '⭕ *ONLY* confirm if you are sure you will share the final list',
-    Extra.inReplyTo(message.id)
+    Extra.inReplyTo(message.message_id).webPreview(false)
   )
-  ctx.pinChatMessage(msg.id)
+  ctx.pinChatMessage(msg.message_id)
 }

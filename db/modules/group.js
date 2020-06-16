@@ -22,6 +22,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     minSubs: {
       type: DataTypes.INTEGER
+    },
+    status: {
+      type: DataTypes.STRING
     }
   }, {
     tableName: 'group',

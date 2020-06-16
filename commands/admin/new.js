@@ -1,6 +1,8 @@
 'use strict'
 
-const { reply } = require('../../helpers')
+const debug = require('debug')('bot:command')
+const { Extra } = require('telegraf')
+const { errorHandler } = require('../../helpers')
 
 module.exports = () => async ctx => {
   ctx.tg.sendChatAction(ctx.chat.id, 'typing')
@@ -14,12 +16,12 @@ module.exports = () => async ctx => {
     active: true,
     status: 'new'
   })
-  session.save()
+  await session.save()
   group.addSession(session)
-  group.status = 'new'
-  group.save()
+  group.set({ status: 'new' })
+  await group.save()
 
-  const msg = reply(
+  const msg = await ctx.replyWithMarkdown(
     '🔰🔰 *Hello Admins* 🔰🔰\n' +
     '〽 *Channel Submission Started*\n' +
     `_Session #${session.id}_\n\n` +
@@ -33,12 +35,15 @@ module.exports = () => async ctx => {
     '#new @ModedGames 10k\n' +
     '🎮 Mod and Paid Games 🎮\n' +
     // eslint-disable-next-line no-useless-escape
-    'https://t.me/joinchat/AAAAAEO24LnEQ\_W7Jp-CMwn\n\n' +
+    'https://t.me/joinchat/AAAAAEO24LnEQ\\_W7Jp-CMw\n\n' +
     '*NB:*\n' +
     '⭕ Any other format will automatically be rejected.\n' +
     '⭕ Do not submit twice\n' +
     `⭕ ${group.minSubs}+ Subscribers`,
-    ctx
-  )
-  ctx.pinChatMessage(msg.id)
+    Extra.webPreview(false)
+  ).catch(errorHandler)
+
+  debug('%O', msg)
+
+  ctx.pinChatMessage(msg.message_id).catch(errorHandler)
 }

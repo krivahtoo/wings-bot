@@ -53,7 +53,7 @@ module.exports = () => async ctx => {
     '🔰🔰 *Hello Admins* 🔰🔰\n' +
     '*Final list is out*' +
     ` _Session #${session.id}_\n\n` +
-    `[Here](https://t.me/wingspromotion/${message.id})\n\n` +
+    `[Here](https://t.me/wingspromotion/${message.message_id})\n\n` +
     'Forward the list your channel and report back to the group with the following:-\n' +
     '1️⃣ #shared\n' +
     '2️⃣ Shared list post link\n\n' +
@@ -62,7 +62,8 @@ module.exports = () => async ctx => {
     '*NB:*\n' +
     '⭕ 2hr on top and 48hrs on channel\n' +
     '⭕ You have 48hrs to share the list\n' +
-    '⭕ Failure to share will result in instant ban.'
+    '⭕ Failure to share will result in instant ban.',
+    Extra.webPreview(false)
   )
-  return ctx.pinChatMessage(msg.id)
+  return ctx.pinChatMessage(msg.message_id)
 }

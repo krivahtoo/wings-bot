@@ -1,19 +1,23 @@
 'use strict'
 
+const debug = require('debug')('bot')
 const { reply, emoji, regex, errorHandler } = require('../helpers')
 
 module.exports = () => async (ctx) => {
   ctx.tg.sendChatAction(ctx.chat.id, 'typing')
   const type = ctx.match[1].toLowerCase()
   const txt = ctx.message.text.trim()
-  const { Channel, Submission, Group } = ctx.database
+  const { Channel, Submission, Group, Session } = ctx.database
+  const newReg = regex('new')
+  const confirmReg = regex('confirm')
+  const sharedReg = regex('shared')
   const group = await Group
     .findByPk(
       Number(ctx.group.id)
     )
     .then(g => g).catch(errorHandler)
 
-  const session = await group
+  let session = await group
     .getSessions({
       where: {
         active: true
@@ -32,16 +36,18 @@ module.exports = () => async (ctx) => {
   if (group.status === type) {
     switch (type) {
       case 'new':
-        if (regex().test(txt)) {
+        if (newReg.test(txt)) {
           let match
           let submission = {
             confirmed: false,
             shared: false,
             messageId: ctx.message.id
           }
-          while ((match = regex().exec(txt)) !== null) {
+          while ((match = newReg.exec(txt)) !== null) {
             const channel = {}
             let emojiCount = 0
+            const emojiReg = emoji()
+            const wordReg = /(\w+)/gi
             let wordCount = 0
 
             channel.username = match[2]
@@ -49,7 +55,7 @@ module.exports = () => async (ctx) => {
             channel.description = match[4]
             channel.inviteLink = match[5]
 
-            const channelId = await ctx.tg.getChat(channel.username)
+            const channelId = await ctx.tg.getChat(`@${channel.username}`)
               .then(c => c.id)
               .catch(errorHandler)
 
@@ -58,20 +64,22 @@ module.exports = () => async (ctx) => {
             }
             channel.id = channelId
 
-            const subs = await ctx.tg.getChatMembersCount(channel.username).catch(errorHandler)
+            const subs = await ctx.tg.getChatMembersCount(channelId).catch(errorHandler)
             if (subs < group.minSubs) {
               return reply(`Sorry your channel @${channel.username} has *${subs}*.`, ctx)
             }
+            debug('channel subs ', subs)
             channel.subscribers = subs
 
-            while ((emoji().exec(channel.description)) !== null) {
+            while ((emojiReg.exec(channel.description)) !== null) {
               emojiCount++
             }
+            debug('found %d emojies', emojiCount)
             if (emojiCount > 2) {
               return reply('Sorry not more than 2 emojis alowed.', ctx)
             }
 
-            while ((/(\w+)/gi.exec(channel.description)) !== null) {
+            while ((wordReg.exec(channel.description)) !== null) {
               wordCount++
             }
             if (wordCount > group.maxWords) {
@@ -83,18 +91,17 @@ module.exports = () => async (ctx) => {
             }
 
             const chn = await Channel
-              .findOne({
-                where: {
-                  username: channel.username
-                }
-              })
-              .then(chl => {
+              .findByPk(channelId)
+              .then(async chl => {
                 if (chl && chl.id) {
+                  debug('channel exists')
                   return chl
                 } else {
                   channel.banned = false
                   const newChannel = new Channel(channel)
-                  newChannel.save()
+                  chl.setUser(ctx.session.user.id)
+                  debug('saving a new Channel')
+                  await newChannel.save()
                   return newChannel
                 }
               })
@@ -102,7 +109,11 @@ module.exports = () => async (ctx) => {
             if (chn.banned) {
               return reply(`Sorry your channel ${chn.username} is banned.`, ctx)
             }
-            chn.setUser(ctx.session.user.id)
+
+            session = Session
+              .findByPk(session.id)
+              .then(c => c)
+              .catch(errorHandler)
 
             const subm = await session.getSubmissions({
               includes: [{
@@ -118,18 +129,20 @@ module.exports = () => async (ctx) => {
             }
 
             submission = new Submission(submission)
+            debug('adding channel to a new submission')
             submission.setChannel(chn)
             session.addSubmission(submission)
             session.save()
+            reply('✔', ctx)
           }
         } else {
           return reply('Incorrect format\nPlease resubmit with the correct', ctx)
         }
         break
       case 'confirm':
-        if (regex(type).test(txt)) {
+        if (confirmReg.test(txt)) {
           let match
-          while ((match = regex().exec(txt)) !== null) {
+          while ((match = confirmReg.exec(txt)) !== null) {
             const channelChat = await ctx.tg.getChat(match[2]).catch(errorHandler)
             const channel = await Channel
               .findByPk(Number(channelChat.id))
@@ -161,9 +174,9 @@ module.exports = () => async (ctx) => {
         }
         break
       case 'shared':
-        if (regex(type).test(txt)) {
+        if (sharedReg.test(txt)) {
           let match
-          while ((match = regex().exec(txt)) !== null) {
+          while ((match = sharedReg.exec(txt)) !== null) {
             const channelChat = await ctx.tg.getChat(match[2]).catch(errorHandler)
             const channel = await Channel
               .findByPk(Number(channelChat.id))
@@ -187,7 +200,7 @@ module.exports = () => async (ctx) => {
             if (!submissions) {
               return reply('You have not submitted or confirmed your channel', ctx)
             }
-            submissions.map(val => {
+            return submissions.map(val => {
               val.shared = true
               val.save()
             })

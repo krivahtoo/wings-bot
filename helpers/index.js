@@ -78,8 +78,9 @@ const keysToCamel = (o) => {
   return o
 }
 
-const reply = (text, ctx) => {
-  return ctx.replyWithMarkdown(text, Extra.inReplyTo(ctx.message.id))
+const reply = async (text, ctx) => {
+  const res = ctx.replyWithMarkdown(text, Extra.inReplyTo(ctx.message.message_id))
+  return res
 }
 
 module.exports = {
