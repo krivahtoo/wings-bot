@@ -28,7 +28,7 @@ module.exports = () => async ctx => {
   if (!session) {
     return reply('No session to share.', ctx)
   }
-  group.set({ status: 'share' })
+  group.set({ status: 'shared' })
   group.save()
 
   const submissions = await session.getSubmissions()
@@ -37,12 +37,13 @@ module.exports = () => async ctx => {
     '📊 _Promoted by:_ [Wings Promotion](https://t.me/wingspromotion)\n' +
     '〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰〰\n'
 
-  submissions.map(async submission => {
-    const channel = await submission.getChannel()
+  for (let i = 0; i < submissions.length; i++) {
+    const channel = await submissions[i].getChannel()
     text +=
       `\n✅ [@${channel.username}](${channel.inviteLink})\n` +
       `*${escapeMarkdown(channel.description)}*\n`
-  })
+  }
+
   const message = await ctx.tg.sendMessage(
     '@wingspromotion',
     text,

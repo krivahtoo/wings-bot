@@ -138,6 +138,9 @@ init(new Telegraf(BOT_TOKEN, {
     app.get('/groups', async (req, res) => {
       res.send(await db.Group.findAll())
     })
+    app.get('/subs', async (req, res) => {
+      res.send(await db.Submission.findAll())
+    })
     app.use(bot.webhookCallback(hook))
     app.listen(PORT, () => {
       debug(`Bot listening to ${PROJECT_DOMAIN} on port ${PORT}`)

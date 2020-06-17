@@ -1,5 +1,6 @@
 'use strict'
 
+const debug = require('debug')('bot:command')
 const { Extra } = require('telegraf')
 const { reply, errorHandler, escapeMarkdown } = require('../../helpers')
 
@@ -32,12 +33,14 @@ module.exports = () => async ctx => {
   group.save()
 
   const submissions = await session.getSubmissions()
+  debug('available submissions %O', submissions)
   let text = '*Confirm list*'
 
-  submissions.map(async val => {
-    const channel = await val.getChannel()
+  for (let i = 0; i < submissions.length; i++) {
+    const channel = await submissions[i].getChannel()
     text += `\n@${escapeMarkdown(channel.username)}`
-  })
+  }
+
   const message = await reply(text, ctx)
 
   const msg = await ctx.replyWithMarkdown(

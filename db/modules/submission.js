@@ -2,13 +2,15 @@
 module.exports = (sequelize, DataTypes) => {
   const Submission = sequelize.define('submission', {
     confirmed: {
-      type: DataTypes.BOOLEAN
+      type: DataTypes.BOOLEAN,
+      allowNull: false
     },
     massageId: {
-      type: DataTypes.STRING
+      type: DataTypes.INTEGER
     },
     shared: {
-      type: DataTypes.BOOLEAN
+      type: DataTypes.BOOLEAN,
+      allowNull: false
     }
   }, {
     tableName: 'submission',

@@ -1,13 +1,13 @@
 'use strict'
 
-const debug = require('debug')('bot')
+const debug = require('debug')('bot:handlers')
 const { reply, emoji, regex, errorHandler } = require('../helpers')
 
 module.exports = () => async (ctx) => {
   ctx.tg.sendChatAction(ctx.chat.id, 'typing')
   const type = ctx.match[1].toLowerCase()
   const txt = ctx.message.text.trim()
-  const { Channel, Submission, Group, Session } = ctx.database
+  const { Channel, Submission, Group } = ctx.database
   const newReg = regex('new')
   const confirmReg = regex('confirm')
   const sharedReg = regex('shared')
@@ -17,18 +17,13 @@ module.exports = () => async (ctx) => {
     )
     .then(g => g).catch(errorHandler)
 
-  let session = await group
+  const session = await group
     .getSessions({
       where: {
         active: true
       },
       limit: 1
-    }).then(s => s).catch(errorHandler)
-
-  session = Session
-    .findByPk(session.id)
-    .then(c => c)
-    .catch(errorHandler)
+    }).then(s => s[0]).catch(errorHandler)
 
   if (!session) {
     return reply('Seems there is no active session.', ctx)
@@ -41,14 +36,17 @@ module.exports = () => async (ctx) => {
   if (group.status === type) {
     switch (type) {
       case 'new':
-        if (newReg.test(txt)) {
+        if (regex('new').test(txt)) {
           let match
           let submission = {
             confirmed: false,
             shared: false,
-            messageId: ctx.message.id
+            messageId: ctx.message.message_id,
+            sessionId: session.id
           }
+          debug('msub %O', submission)
           while ((match = newReg.exec(txt)) !== null) {
+            debug('match')
             const channel = {}
             let emojiCount = 0
             const emojiReg = emoji()
@@ -98,13 +96,13 @@ module.exports = () => async (ctx) => {
             const chn = await Channel
               .findByPk(channelId)
               .then(async chl => {
-                if (chl && chl.id) {
+                if (chl) {
                   debug('channel exists')
                   return chl
                 } else {
                   channel.banned = false
                   const newChannel = new Channel(channel)
-                  chl.setUser(ctx.session.user.id)
+                  newChannel.setOwner(ctx.session.user.id)
                   debug('saving a new Channel')
                   await newChannel.save()
                   return newChannel
@@ -115,22 +113,22 @@ module.exports = () => async (ctx) => {
               return reply(`Sorry your channel ${chn.username} is banned.`, ctx)
             }
 
-            const subm = await session.getSubmissions({
-              includes: [{
-                model: Channel,
+            const subm = await session
+              .getSubmissions({
                 where: {
-                  username: chn.username
+                  channelId: chn.id
                 }
-              }]
-            })
+              })
+              .then(s => s[0])
+              .catch(errorHandler)
 
             if (subm) {
               return reply('Don\'t submit more than once.', ctx)
             }
+            submission.channelId = chn.id
 
             submission = new Submission(submission)
-            debug('adding channel to a new submission')
-            submission.setChannel(chn)
+            submission.save()
             session.addSubmission(submission)
             session.save()
             reply('✔', ctx)
@@ -140,10 +138,10 @@ module.exports = () => async (ctx) => {
         }
         break
       case 'confirm':
-        if (confirmReg.test(txt)) {
+        if (regex('confirm').test(txt)) {
           let match
           while ((match = confirmReg.exec(txt)) !== null) {
-            const channelChat = await ctx.tg.getChat(match[2]).catch(errorHandler)
+            const channelChat = await ctx.tg.getChat(`@${match[2]}`).catch(errorHandler)
             const channel = await Channel
               .findByPk(Number(channelChat.id))
               .then(c => c)
@@ -151,59 +149,49 @@ module.exports = () => async (ctx) => {
             if (!channel) {
               return reply('You have not submitted your channel', ctx)
             }
-            const submissions = session
+            const submission = await session
               .getSubmissions({
-                includes: [{
-                  model: Channel,
-                  where: {
-                    id: channel.id
-                  }
-                }]
+                where: {
+                  channelId: channel.id
+                }
               })
-              .then(s => s).catch(errorHandler)
-            if (!submissions) {
+              .then(s => s[0]).catch(errorHandler)
+            if (!submission) {
               return reply('You have not submitted your channel', ctx)
             }
-            submissions.map(val => {
-              val.confirmed = true
-              val.save()
-            })
+            submission.set({ confirmed: true })
+            submission.save()
+            reply('✔', ctx)
           }
         } else {
           return reply('Incorrect format.\nPlease confirm with the correct.', ctx)
         }
         break
       case 'shared':
-        if (sharedReg.test(txt)) {
+        if (regex('shared').test(txt)) {
           let match
           while ((match = sharedReg.exec(txt)) !== null) {
-            const channelChat = await ctx.tg.getChat(match[2]).catch(errorHandler)
+            const channelChat = await ctx.tg.getChat(`@${match[2]}`).catch(errorHandler)
             const channel = await Channel
               .findByPk(Number(channelChat.id))
               .then(c => c).catch(errorHandler)
             if (!channel) {
               return reply('You have not submitted your channel', ctx)
             }
-            const submissions = await session
+            const submission = await session
               .getSubmissions({
                 where: {
-                  confirmed: true
-                },
-                includes: [{
-                  model: Channel,
-                  where: {
-                    id: channel.id
-                  }
-                }]
+                  confirmed: true,
+                  channelId: channel.id
+                }
               })
-              .then(s => s).catch(errorHandler)
-            if (!submissions) {
+              .then(s => s[0]).catch(errorHandler)
+            if (!submission) {
               return reply('You have not submitted or confirmed your channel', ctx)
             }
-            return submissions.map(val => {
-              val.shared = true
-              val.save()
-            })
+            submission.set({ shared: true })
+            submission.save()
+            reply('✔', ctx)
           }
         } else {
           return reply('Incorrect format.\nPlease with the correct link.', ctx)

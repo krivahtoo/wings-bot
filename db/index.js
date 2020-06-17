@@ -19,31 +19,18 @@ const Submission = SubmissionModel(sequelize, Sequelize)
 const User = UserModel(sequelize, Sequelize)
 
 Channel.belongsTo(User, {
-  as: 'Owner',
-  foreignKey: 'user_id'
+  as: 'Owner'
 })
 
-Group.hasMany(Session, {
-  foreignKey: 'group_id'
-})
+Group.hasMany(Session)
 
-Session.hasMany(Submission, {
-  foreignKey: 'session_id'
-})
-Session.belongsTo(Group, {
-  foreignKey: 'group_id'
-})
+Session.hasMany(Submission)
+Session.belongsTo(Group)
 
-Submission.belongsTo(Session, {
-  foreignKey: 'session_id'
-})
-Submission.belongsTo(Channel, {
-  foreignKey: 'channel_id'
-})
+Submission.belongsTo(Session)
+Submission.belongsTo(Channel)
 
-User.hasMany(Channel, {
-  foreignKey: 'user_id'
-})
+User.hasMany(Channel)
 
 module.exports = {
   sequelize,

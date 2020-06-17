@@ -11,13 +11,13 @@ module.exports = () => async ctx => {
   const { Group } = ctx.database
   const group = await Group.findByPk(ctx.group.id)
   const sessions = await group.getSessions().catch(errorHandler)
-  if (!sessions) {
-    return reply('No session to end.', ctx)
-  }
   group.set({
     status: 'none'
   })
   group.save()
+  if (!sessions) {
+    return reply('No session to end.', ctx)
+  }
   sessions.map(async session => {
     const res = await session.set({
       active: false
