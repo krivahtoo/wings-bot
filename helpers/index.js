@@ -13,7 +13,7 @@ const regex = (type = 'new') => {
   switch (type) {
     case 'new':
       // eslint-disable-next-line no-useless-escape
-      return /#(new)(?:\n| )@([0-9a-z_]+)(?:\n| )([0-9]+k*)(?:\n| )(.+)(?:\n| )(https:\/\/t\.me\/(joinchat\/|)[0-9a-z_\-]+)/gi
+      return /#(new)(?:\n| )@([0-9a-z_]+)(?:\n| )([0-9.]+k*)(?:\n| )(.+)(?:\n| )(https:\/\/t\.me\/(joinchat\/|)[0-9a-z_\-]+)/gi
     case 'confirm':
       return /#(confirm)(?:\n| )@([0-9a-z_]+)/gi
     case 'shared':
